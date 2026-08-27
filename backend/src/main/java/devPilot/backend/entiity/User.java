@@ -19,7 +19,7 @@ public class User {
     private UUID id;
 
     @Column(name = "github_id", unique = true, nullable = false)
-    private long githubId;
+    private Long githubId;
 
     @Column(name = "github_username", nullable = false, length = 100)
     private String githubUsername;
