@@ -16,7 +16,7 @@ public class UserService {
     public final TextEncryptor tokenEncrypter;
 
     @Transactional(readOnly = true)
-    public User requiredByGithubId(UUID id) {
+    public User requiredById(UUID id) {
         return userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
     }
 
