@@ -567,38 +567,38 @@ The Maven Wrapper is preferable to requiring every developer to install a matchi
 
 # 11. Frontend
 
-The client is a Next.js application using React and TypeScript.
+The client is a **Next.js application using React and TypeScript**. The current frontend is the application shell and UI foundation; it is not yet the complete DevPilot product.
 
-Current package versions include:
+Current frontend technologies include:
 
-- Next.js 16.3.2
-- React 19.2.8
-- React DOM 19.2.8
-- TypeScript 5
-- Tailwind CSS 4
-- TanStack React Query 5
-- next-themes
-- shadcn
-- Lucide React
-- Recharts
-- date-fns
-- Embla Carousel
-- React Day Picker
-- React Resizable Panels
-- various supporting UI packages
+| Technology / Package | Role |
+|---|---|
+| Next.js | React framework and application routing |
+| React | UI component model |
+| TypeScript | Static typing |
+| Tailwind CSS | Utility-first styling |
+| TanStack React Query | Server-state management |
+| `next-themes` | Light/dark/system theme management |
+| shadcn/ui | Reusable UI component foundation |
+| Lucide React | Icons |
+| Recharts | Charts |
+| date-fns | Date utilities |
+| Embla Carousel | Carousel behavior |
+| React Day Picker | Date-picker/calendar functionality |
+| React Resizable Panels | Resizable layouts |
 
-The frontend currently provides the application shell and UI foundation rather than the complete DevPilot product.
+The repository currently contains the frontend dependencies and supporting UI infrastructure described above. fileciteturn67file2L564-L586
 
 ---
 
-# 12. Frontend Architecture
+# 12. Frontend Structure
 
-The current client structure separates several responsibilities:
+The important frontend directories are:
 
 ```text
 client/
 ├── app/
-│   └── Application routes / layouts
+│   └── Next.js application routes and layouts
 │
 ├── components/
 │   ├── providers/
@@ -606,7 +606,7 @@ client/
 │   │   └── theme-provider
 │   │
 │   └── ui/
-│       └── reusable UI components
+│       └── reusable UI primitives
 │
 ├── hooks/
 │   └── reusable React hooks
@@ -615,41 +615,100 @@ client/
     └── shared utilities
 ```
 
+The separation is intentional:
+
+```text
+app/
+  -> pages, layouts, routing
+
+components/
+  -> reusable UI and providers
+
+hooks/
+  -> reusable React logic
+
+lib/
+  -> utilities / shared helpers
+```
+
+The current repository structure explicitly separates providers, UI components, hooks, and shared utilities. fileciteturn67file2L590-L612
+
 ---
 
-## 12.1 Next.js App Router
+# 13. Next.js App Router
 
-The application uses the Next.js `app` directory.
+The client uses the Next.js `app` directory.
 
-The root layout is responsible for global application setup such as:
+The root layout is the application-level composition point. It is responsible for global concerns such as:
 
 - fonts
 - global CSS
-- theme handling
-- React Query context
+- theme provider
+- React Query provider
 
----
-
-# 13. TanStack React Query
-
-The frontend contains a custom:
-
-```text
-QueryProvider
-```
-
-It creates a `QueryClient` and exposes it through:
-
-```tsx
-<QueryClientProvider client={query}>
-    {children}
-</QueryClientProvider>
-```
+This means individual pages do not need to recreate these global providers.
 
 Conceptually:
 
 ```text
-React Application
+Next.js Application
+        |
+        v
+     layout
+        |
+        +--> ThemeProvider
+        |
+        +--> QueryProvider
+        |
+        v
+     page/routes
+```
+
+The current project uses the App Router structure and places application-wide setup in the root layout. fileciteturn67file2L616-L625
+
+---
+
+# 14. TanStack React Query
+
+DevPilot includes a custom `QueryProvider`.
+
+The provider creates a `QueryClient` and makes it available to the React component tree through `QueryClientProvider`.
+
+The basic structure is:
+
+```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+
+const QueryProvider = ({ children }: { children: React.ReactNode }) => {
+    const [query] = React.useState(() => new QueryClient());
+
+    return (
+        <QueryClientProvider client={query}>
+            {children}
+        </QueryClientProvider>
+    );
+};
+
+export default QueryProvider;
+```
+
+## What is `QueryClient`?
+
+`QueryClient` is the central object used by TanStack React Query to manage server state.
+
+It handles things such as:
+
+- fetching data
+- caching responses
+- request lifecycle
+- refetching
+- tracking loading/error states
+
+Conceptually:
+
+```text
+React Components
        |
        v
 QueryProvider
@@ -657,45 +716,99 @@ QueryProvider
        v
 QueryClient
        |
-       +--> server-state fetching
-       +--> caching
-       +--> request lifecycle
-       +--> refetching
+       +--> fetch
+       +--> cache
+       +--> refetch
+       +--> loading/error state
 ```
 
-React Query is intended to manage server state rather than replacing normal React state.
+React Query is **not a replacement for `useState`**.
 
-For DevPilot, this will become useful once the frontend begins communicating with the Spring Boot API.
-
----
-
-# 14. Theme System
-
-The client uses `next-themes` through a theme provider.
-
-The root layout wraps the application with:
+A useful distinction is:
 
 ```text
-ThemeProvider
+useState
+  -> local UI/application state
+
+React Query
+  -> remote/server state
 ```
 
-The current frontend also contains a mode toggle component.
-
-This establishes light/dark/system theme support at the application level.
+For DevPilot, React Query becomes especially useful when the frontend starts consuming Spring Boot API endpoints. fileciteturn68file0L16-L51
 
 ---
 
-# 15. UI System
+# 15. Theme Provider
 
-The client contains a collection of reusable UI components under:
+The frontend uses `next-themes` through a custom theme provider.
+
+Its purpose is to make the application's theme available globally.
+
+The project supports the concept of:
+
+```text
+Light
+Dark
+System
+```
+
+The provider is placed near the root of the application so individual components can access theme state without manually passing it through props.
+
+Conceptually:
+
+```text
+Root Layout
+     |
+     v
+ThemeProvider
+     |
+     +--> Header
+     +--> Sidebar
+     +--> Pages
+     +--> UI components
+```
+
+The current client also contains a mode-toggle component for changing the theme. fileciteturn68file0L55-L67
+
+---
+
+# 16. UI Component System
+
+The client contains reusable UI components under:
 
 ```text
 components/ui/
 ```
 
-These components are largely infrastructure generated/configured around the shadcn ecosystem.
+These components are primarily built around the shadcn/ui ecosystem.
 
-Examples include components for:
+Important point:
+
+> These components are **infrastructure**, not DevPilot business logic.
+
+For example:
+
+```text
+button
+  -> reusable button primitive
+
+card
+  -> reusable content container
+
+dialog
+  -> reusable modal primitive
+
+form
+  -> reusable form structure
+
+sidebar
+  -> reusable navigation/layout primitive
+
+table
+  -> reusable tabular-data component
+```
+
+The repository includes UI primitives for areas such as:
 
 - buttons
 - cards
@@ -712,493 +825,698 @@ Examples include components for:
 - tables
 - tooltips
 
-These components should be treated as **UI building blocks**, not individual DevPilot business features.
+The purpose of this layer is to avoid rebuilding common UI behavior every time a DevPilot screen is created. fileciteturn68file0L71-L91
 
----
+### Why this matters
 
-# 16. Intended RAG Architecture
-
-The repository description identifies RAG as the core direction of DevPilot.
-
-The intended pipeline is:
+Instead of:
 
 ```text
-Source
-  |
-  v
-Document / Repository ingestion
-  |
-  v
-Text extraction
-  |
-  v
-Chunking
-  |
-  v
-Embedding model
-  |
-  v
-Vector storage
-  |
-  v
-Similarity search
-  |
-  v
-Relevant context
-  |
-  v
-Prompt construction
-  |
-  v
-LLM
-  |
-  v
-Developer response
+Page A -> custom button
+Page B -> another custom button
+Page C -> another custom button
 ```
 
-PostgreSQL is already configured using a pgvector-enabled image, which provides the infrastructure needed for vector storage.
+the application can use:
 
-The actual ingestion, embedding, retrieval, and generation pipeline is not yet implemented in the current repository.
+```text
+                 UI primitive
+                      |
+          +-----------+-----------+
+          |           |           |
+        Page A      Page B      Page C
+```
+
+This keeps the UI more consistent and makes future changes easier.
 
 ---
 
-# 17. AI Model Configuration
+# 17. Frontend Libraries — Why They Were Added
 
-The current backend configuration is prepared for OpenAI:
+The frontend contains several libraries that may initially look unrelated. Their roles are different:
+
+| Library | Why it exists |
+|---|---|
+| TanStack Query | API/server-state management |
+| next-themes | Theme management |
+| Lucide React | Consistent icon set |
+| Recharts | Data visualization |
+| date-fns | Date manipulation/formatting |
+| Embla Carousel | Carousel interactions |
+| React Day Picker | Calendar/date selection |
+| React Resizable Panels | Resizable UI layouts |
+| shadcn/ui components | Reusable application UI |
+
+Not every dependency represents a completed DevPilot feature. Some are foundational components available for future screens.
+
+---
+
+# 18. Backend Configuration — `application.properties`
+
+The backend configuration is located at:
+
+```text
+backend/src/main/resources/application.properties
+```
+
+Current configuration:
 
 ```properties
+spring.application.name=backend
+
+# Defaults match docker-compose.yml (postgres on host port 5433)
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5433/devpilot}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.open-in-view=false
+
+spring.ai.openai.api-key=${OPENAI_API_KEY}
 spring.ai.openai.chat.model=gpt-4o-mini
 spring.ai.openai.embedding.model=text-embedding-3-small
 ```
 
-Spring AI dependencies are already present in `pom.xml`.
+---
 
-The project may later evaluate local/free models such as Ollama-backed models. That decision should be documented separately once an actual model is selected and integrated.
+## 18.1 Application Name
 
-Do not document a model as part of the production architecture until it has been tested inside DevPilot.
+```properties
+spring.application.name=backend
+```
+
+This gives the Spring Boot application its application name.
+
+It is primarily application metadata/configuration and does not determine the Java package name.
 
 ---
 
-# 18. Authentication Direction
+## 18.2 Database URL
 
-The backend already includes:
-
-```text
-Spring Security
-OAuth2 Client
+```properties
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5433/devpilot}
 ```
 
-The `User` entity also contains GitHub-specific fields:
+This uses Spring's environment-variable/default-value syntax:
 
 ```text
-githubId
-githubUsername
-avatarUrl
-accessToken
-tokenScope
+${VARIABLE:default}
 ```
 
-This strongly establishes the intended GitHub authentication/integration direction.
-
-The complete OAuth login flow is not yet implemented in the current repository.
-
-Expected future flow:
+Therefore:
 
 ```text
-User
- |
- v
-DevPilot Login
- |
- v
-GitHub OAuth
- |
- v
-GitHub authorization
- |
- v
-Authorization callback
- |
- v
-User lookup / creation
- |
- v
-Persist user
- |
- v
-Authenticated DevPilot session
+If DB_URL exists:
+    use DB_URL
+
+Otherwise:
+    jdbc:postgresql://localhost:5433/devpilot
+```
+
+The default points to PostgreSQL exposed by Docker on host port `5433`.
+
+The distinction is:
+
+```text
+Host machine
+localhost:5433
+      |
+      v
+Docker container
+5432
 ```
 
 ---
 
-# 19. Security Considerations
+## 18.3 Database Credentials
 
-The `User` entity currently contains an `accessToken` field.
+```properties
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+```
 
-That makes token handling a security-sensitive part of the architecture.
+The same pattern allows local defaults while allowing deployment environments to override them.
 
-The current service contains support for decrypting the stored access token using `TextEncryptor`.
+Local default:
 
-Future implementation must ensure:
+```text
+username = postgres
+password = postgres
+```
 
-- tokens are never logged
-- tokens are never returned to the frontend unnecessarily
-- encryption keys are supplied through secure configuration
-- secrets are not committed to Git
-- OAuth scopes are minimized
-- access tokens are handled only where required
-- production secrets are managed outside source control
+These are development credentials only.
 
-The current local PostgreSQL credentials are development defaults and should not be treated as production credentials.
+Production credentials should be provided through secure environment/configuration management.
 
 ---
 
-# 20. Development History
+## 18.4 PostgreSQL JDBC Driver
 
-This section is intentionally chronological. It should be updated after every meaningful development milestone.
+```properties
+spring.datasource.driver-class-name=org.postgresql.Driver
+```
 
-## 2026-08-25 — Initial Project Setup
-
-The repository was initialized with the initial DevPilot project structure.
-
-Initial foundation included the backend and repository-level development setup.
+This tells Spring/JDBC which driver implementation should be used to communicate with PostgreSQL.
 
 ---
 
-## 2026-08-25 — Client Source Added
-
-Commit:
-
-```text
-Track client source code
-```
-
-The client source was added to the repository.
-
-The frontend foundation includes Next.js, React, TypeScript, Tailwind CSS, shadcn-based UI infrastructure, theme support, and the initial application structure.
-
----
-
-## 2026-08-27 — JPA User Persistence and Exception Handling
-
-Commit:
-
-```text
-feat: set up JPA user persistence and exception handling
-```
-
-The backend persistence foundation was introduced.
-
-### Added
-
-- `User` JPA entity
-- PostgreSQL/JPA integration
-- `UserRepository`
-- `UserService`
-- `BadRequestException`
-- `NotFoundException`
-- `UnauthorizedException`
-- `GlobalExceptionHandler`
-- validation error handling
-- standardized API error response structure
-
-The `User` entity was later corrected so that:
-
-```text
-githubId -> Long
-```
-
-and:
-
-```java
-findByGithubId(Long githubId)
-```
-
-matches the entity field type.
-
-The distinction between the internal `UUID id` and external `Long githubId` was explicitly corrected during development.
-
----
-
-# 21. Current Architecture Snapshot
-
-As of the current repository state:
-
-```text
-                       DEV PILOT
-                           |
-             +-------------+-------------+
-             |                           |
-             v                           v
-        Next.js Client              Spring Boot
-             |                           |
-             |                           +----------------+
-             |                           |                |
-             v                           v                v
-      React Query / UI             Service Layer    Exception Layer
-                                         |
-                                         v
-                                  Spring Data JPA
-                                         |
-                                         v
-                                    PostgreSQL
-                                         |
-                                         v
-                                      pgvector
-
-Spring AI
-    |
-    v
-AI / RAG integration foundation
-```
-
-This is a **foundation snapshot**, not a claim that all displayed components are already connected end-to-end.
-
----
-
-# 22. Planned Development Roadmap
-
-The roadmap should evolve as implementation progresses.
-
-## Phase 1 — Foundation
-
-- [x] Repository initialized
-- [x] Backend created
-- [x] Client created
-- [x] Docker/PostgreSQL setup
-- [x] JPA dependency
-- [x] User entity
-- [x] User repository
-- [x] Initial service layer
-- [x] Exception layer
-- [x] React Query provider
-- [x] Theme provider
-- [x] UI component foundation
-
-## Phase 2 — Authentication
-
-- [ ] GitHub OAuth configuration
-- [ ] OAuth callback
-- [ ] User creation/update
-- [ ] Secure token handling
-- [ ] Authentication/session strategy
-- [ ] Protected backend endpoints
-- [ ] Frontend authentication state
-
-## Phase 3 — Repository Integration
-
-- [ ] Connect GitHub repositories
-- [ ] Repository metadata
-- [ ] File retrieval
-- [ ] File filtering
-- [ ] Repository synchronization
-- [ ] Ingestion pipeline
-
-## Phase 4 — RAG
-
-- [ ] Document model
-- [ ] Chunk model
-- [ ] Embedding generation
-- [ ] pgvector storage
-- [ ] Similarity search
-- [ ] Retrieval service
-- [ ] Context construction
-- [ ] LLM generation
-
-## Phase 5 — Developer Assistant
-
-- [ ] Chat interface
-- [ ] Context-aware answers
-- [ ] Code explanation
-- [ ] Repository questions
-- [ ] Error/debugging assistance
-- [ ] Codebase navigation
-- [ ] Source references/citations
-
-## Phase 6 — Production Readiness
-
-- [ ] Configuration management
-- [ ] Database migrations
-- [ ] Security hardening
-- [ ] Observability
-- [ ] Automated tests
-- [ ] CI/CD
-- [ ] Containerized deployment
-- [ ] Production database
-- [ ] Performance testing
-
----
-
-# 23. Current Known Issues / Technical Debt
-
-These are deliberately recorded so future development does not lose track of them.
-
-### 1. `entiity` package naming
-
-Current package:
-
-```text
-devPilot.backend.entiity
-```
-
-Expected conventional spelling:
-
-```text
-devPilot.backend.entity
-```
-
-This should be renamed carefully because it affects Java package declarations and imports.
-
-### 2. `UserService` GitHub lookup mismatch
-
-Current service method:
-
-```java
-requiredByGithubId(UUID id)
-```
-
-currently calls:
-
-```java
-userRepository.findById(id)
-```
-
-This is an internal UUID lookup, not a GitHub ID lookup.
-
-The repository already exposes:
-
-```java
-findByGithubId(Long githubId)
-```
-
-The service should be aligned with that when the authentication flow is implemented.
-
-### 3. Docker path casing
-
-The repository stores the Docker directory as:
-
-```text
-DOCKER/POSTGRES/
-```
-
-while the root Compose file references:
-
-```text
-./docker/postgres/init-extensions.sql
-```
-
-Windows is generally case-insensitive, so this can work locally. Linux filesystems are commonly case-sensitive.
-
-The path should be normalized before production/Linux CI use.
-
-### 4. Multiple frontend lockfiles
-
-The client currently contains both:
-
-```text
-package-lock.json
-pnpm-lock.yaml
-```
-
-The project should eventually standardize on one package manager and one lockfile.
-
-### 5. Database schema strategy
-
-The current configuration uses:
+## 18.5 Hibernate Schema Management
 
 ```properties
 spring.jpa.hibernate.ddl-auto=update
 ```
 
-This is convenient during development but should not be treated as the final production database migration strategy.
+During development, Hibernate can compare the entity model with the database schema and update the schema when possible.
 
-A migration system such as Flyway should be established before production deployment.
-
----
-
-# 24. Git Commit Convention
-
-Use concise, descriptive conventional commits.
-
-Recommended format:
+Current project strategy:
 
 ```text
-type: short description
+Java Entity
+     |
+     v
+Hibernate / JPA
+     |
+     v
+PostgreSQL schema
 ```
 
-Examples:
+This is convenient during early development.
+
+It should eventually be replaced with a controlled migration strategy using Flyway.
+
+---
+
+## 18.6 SQL Logging
+
+```properties
+spring.jpa.show-sql=false
+```
+
+SQL statements are not printed through Hibernate's basic SQL display mechanism.
+
+This keeps normal development logs cleaner.
+
+---
+
+## 18.7 SQL Formatting
+
+```properties
+spring.jpa.properties.hibernate.format_sql=true
+```
+
+When Hibernate SQL is displayed through supported logging/configuration, this requests formatted SQL rather than a compressed single-line representation.
+
+---
+
+## 18.8 Open Session in View
+
+```properties
+spring.jpa.open-in-view=false
+```
+
+This disables Spring's Open Session in View pattern.
+
+The intention is to avoid keeping the persistence context open through the entire web request and instead make database access boundaries more explicit.
+
+This encourages the application to load the data it needs inside the appropriate service/transaction boundary.
+
+---
+
+# 19. Spring AI Configuration
+
+The backend is currently configured for OpenAI:
+
+```properties
+spring.ai.openai.api-key=${OPENAI_API_KEY}
+spring.ai.openai.chat.model=gpt-4o-mini
+spring.ai.openai.embedding.model=text-embedding-3-small
+```
+
+The API key is read from:
 
 ```text
-feat: add GitHub OAuth authentication
-feat: add repository ingestion pipeline
-feat: implement vector similarity search
-
-fix: correct GitHub user identifier type
-fix: handle missing user in service layer
-
-refactor: rename entiity package to entity
-
-test: add user repository tests
-
-docs: update development journal
+OPENAI_API_KEY
 ```
 
-The commit message should describe **what changed**, while this README records **why it changed and how it fits into the architecture**.
+No API key should be committed to Git.
+
+There are two different AI responsibilities here:
+
+```text
+Chat model
+    |
+    v
+Generate responses
+
+Embedding model
+    |
+    v
+Convert text into vectors
+```
+
+This distinction becomes important when implementing the RAG pipeline.
+
+The project already includes Spring AI dependencies and has pgvector-backed PostgreSQL infrastructure, but the complete RAG pipeline is still future work.
 
 ---
 
-# 25. How to Explain DevPilot in an Interview
+# 20. Environment Variables
 
-A concise technical explanation:
+The project uses environment variables where configuration should be changeable without modifying source code.
 
-> DevPilot is a full-stack AI developer assistant designed around Retrieval-Augmented Generation. The frontend is built with Next.js, React, TypeScript, Tailwind, and a reusable component system. The backend uses Spring Boot with Spring Data JPA and PostgreSQL. PostgreSQL is configured with pgvector so repository and document embeddings can eventually be stored and searched using vector similarity. Spring AI provides the AI integration layer. The application is being built incrementally, starting with authentication and persistence before implementing repository ingestion and the RAG pipeline.
+Current examples:
 
-### Architecture explanation
+```text
+DB_URL
+DB_USERNAME
+DB_PASSWORD
+OPENAI_API_KEY
+```
 
-If asked:
+The database properties provide development defaults:
 
-**"Why RAG?"**
+```properties
+${DB_URL:default}
+${DB_USERNAME:default}
+${DB_PASSWORD:default}
+```
 
-Answer:
+The OpenAI key intentionally has no hard-coded fallback:
 
-> A general-purpose LLM does not automatically know the current contents of a user's private codebase or documentation. RAG allows DevPilot to retrieve relevant project context and provide that context to the model before generation.
+```properties
+${OPENAI_API_KEY}
+```
 
-**"Why PostgreSQL?"**
+### Security rule
 
-> DevPilot needs relational persistence for application data such as users, repositories, and metadata. Using PostgreSQL with pgvector also provides a path to storing and querying embeddings without introducing a separate vector database initially.
+Never commit:
 
-**"Why Spring Data JPA?"**
+```text
+API keys
+OAuth client secrets
+Access tokens
+Production passwords
+Encryption keys
+```
 
-> It provides a clean repository abstraction over PostgreSQL and reduces boilerplate for CRUD and query operations while keeping persistence logic separate from service logic.
-
-**"Why a service layer?"**
-
-> The service layer keeps business logic between controllers and repositories. Controllers handle HTTP concerns, repositories handle persistence, and services coordinate application behavior.
-
----
-
-# 26. Development Principles
-
-The project should follow these principles as it grows:
-
-1. **Do not mix business logic with controllers.**
-2. **Keep persistence concerns inside repositories/entities.**
-3. **Use services for application/business logic.**
-4. **Keep API error handling centralized.**
-5. **Never commit secrets.**
-6. **Prefer explicit architecture over unnecessary abstractions.**
-7. **Document architectural decisions, not every line of code.**
-8. **Record problems encountered during development.**
-9. **Test important business behavior instead of only testing framework wiring.**
-10. **Do not mark planned functionality as implemented.**
+to the repository.
 
 ---
 
-# 27. Documentation Journal Rules
+# 21. Development History
 
-This README is intended to become the long-term technical record for DevPilot.
+This section records what was actually added during development and why.
 
-After every significant development session, update the development history with:
+## 2026-08-25 — Initial Project Foundation
+
+### Added
+
+- Initial DevPilot repository structure
+- Backend project foundation
+- Client project foundation
+- Docker/PostgreSQL development setup
+
+### Purpose
+
+Establish the full-stack structure before implementing application-specific functionality.
+
+---
+
+## 2026-08-25 — Client Source and UI Foundation
+
+### Added
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn-based UI components
+- `next-themes`
+- TanStack React Query
+- QueryProvider
+- ThemeProvider
+- reusable UI primitives
+- frontend hooks/lib structure
+
+### Why
+
+The application needed a consistent frontend foundation before building DevPilot-specific screens.
+
+### QueryProvider
+
+TanStack React Query was introduced so server state can eventually be managed consistently when the frontend starts communicating with the Spring Boot backend.
+
+### ThemeProvider
+
+`next-themes` was introduced to provide application-wide theme management.
+
+### UI components
+
+The reusable UI layer provides common primitives such as buttons, cards, dialogs, forms, navigation, tables, calendars, and other components instead of implementing each from scratch.
+
+---
+
+## 2026-08-27 — JPA User Persistence and Exception Handling
+
+### Added
+
+- `User` JPA entity
+- `UserRepository`
+- `UserService`
+- PostgreSQL/JPA integration
+- custom exceptions
+- `GlobalExceptionHandler`
+- validation error handling
+- standardized API error responses
+
+### User entity
+
+The entity establishes DevPilot's initial user persistence model.
+
+Important identifier distinction:
+
+```text
+id
+-> UUID
+-> DevPilot's internal primary key
+
+githubId
+-> Long
+-> GitHub's external user identifier
+```
+
+### Repository
+
+The repository extends:
+
+```java
+JpaRepository<User, UUID>
+```
+
+and adds:
+
+```java
+Optional<User> findByGithubId(Long githubId);
+```
+
+Spring Data JPA derives the query from the repository method name.
+
+### Service correction
+
+The service lookup method was originally named:
+
+```text
+requiredById
+```
+
+It was renamed to:
+
+```text
+requiredByGithubId
+```
+
+because the method's intended responsibility is specifically to retrieve a user using the GitHub identifier.
+
+The implementation should therefore use:
+
+```java
+userRepository.findByGithubId(githubId)
+```
+
+rather than:
+
+```java
+userRepository.findById(id)
+```
+
+The distinction matters because `findById()` searches using DevPilot's UUID primary key, while `findByGithubId()` searches using GitHub's external ID.
+
+### Exception handling
+
+Custom exceptions were added so application failures can be represented explicitly:
+
+```text
+BadRequestException
+NotFoundException
+UnauthorizedException
+```
+
+`GlobalExceptionHandler` centralizes conversion of these failures into structured HTTP responses.
+
+---
+
+# 22. Current Architecture Snapshot
+
+```text
+                         DEV PILOT
+                             |
+             +---------------+---------------+
+             |                               |
+             v                               v
+       Next.js Client                   Spring Boot
+             |                               |
+       +-----+------+              +---------+---------+
+       |            |              |                   |
+       v            v              v                   v
+ React Query    UI System     Service Layer     Exception Handler
+       |                            |
+       |                            v
+       |                     Spring Data JPA
+       |                            |
+       |                            v
+       |                       PostgreSQL
+       |                            |
+       |                            v
+       |                         pgvector
+       |
+       +--------------------+
+                            |
+                         Spring AI
+                            |
+                            v
+                     AI / RAG foundation
+```
+
+This is a **current foundation snapshot**. It does not mean every component is already connected end-to-end.
+
+---
+
+# 23. Known Technical Debt
+
+These items should be removed as the project progresses.
+
+### 1. Package naming
+
+Rename:
+
+```text
+entiity
+```
+
+to:
+
+```text
+entity
+```
+
+if this has not already been completed.
+
+### 2. GitHub user lookup
+
+Ensure:
+
+```java
+requiredByGithubId(Long githubId)
+```
+
+calls:
+
+```java
+findByGithubId(githubId)
+```
+
+and not `findById()`.
+
+### 3. Docker path consistency
+
+The Compose file expects:
+
+```text
+docker/postgres/init-extensions.sql
+```
+
+so the repository should use the same lowercase path consistently.
+
+### 4. Frontend package manager
+
+Standardize on one package manager.
+
+If pnpm is selected:
+
+```text
+KEEP: pnpm-lock.yaml
+REMOVE: package-lock.json
+```
+
+### 5. Database migrations
+
+Keep:
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+while the project is still evolving rapidly.
+
+Before production, introduce Flyway migrations and move toward:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+```
+
+after the migration schema is established.
+
+---
+
+# 24. What Is Implemented vs Planned
+
+## Implemented
+
+- Spring Boot backend foundation
+- Next.js/React frontend foundation
+- PostgreSQL development database
+- pgvector-enabled PostgreSQL image
+- JPA persistence foundation
+- User entity
+- User repository
+- User service
+- Custom exception layer
+- Global exception handling
+- React Query provider
+- Theme provider
+- reusable UI component foundation
+- Spring AI dependency/configuration foundation
+
+## Planned
+
+- GitHub OAuth flow
+- authenticated sessions
+- GitHub repository integration
+- repository ingestion
+- code/document chunking
+- embedding generation
+- vector persistence/search
+- retrieval pipeline
+- context construction
+- LLM-powered developer assistant
+- repository-aware chat
+- code explanations
+- source references
+- production hardening
+
+The project should not mark planned functionality as completed until it is actually implemented.
+
+---
+
+# 25. How to Explain the Frontend
+
+If asked **"Why Next.js?"**:
+
+> Next.js provides the React application framework, routing, layouts, and application structure required for the DevPilot client.
+
+If asked **"Why React Query?"**:
+
+> React Query manages server state such as API responses, caching, loading states, errors, and refetching. It is different from local React state, which is better suited for UI state.
+
+If asked **"Why a QueryProvider?"**:
+
+> TanStack React Query needs a QueryClient available to the component tree. The provider creates and supplies that client at the application level.
+
+If asked **"Why shadcn?"**:
+
+> It provides reusable UI primitives that can be composed into application-specific interfaces without rebuilding common components from scratch.
+
+If asked **"Why next-themes?"**:
+
+> It provides centralized theme management so light, dark, and system themes can be applied consistently across the application.
+
+---
+
+# 26. How to Explain the Backend
+
+If asked **"Why JPA?"**:
+
+> JPA provides the persistence model while Spring Data JPA provides repository abstractions and derived queries, reducing boilerplate database access code.
+
+If asked **"Why UUID for the internal ID?"**:
+
+> The UUID is DevPilot's internal identifier and is deliberately separate from the external GitHub identifier.
+
+If asked **"Why a separate githubId?"**:
+
+> GitHub owns that identifier. DevPilot should not use an external provider's identifier as its own database primary key.
+
+If asked **"Why a service layer?"**:
+
+> The service layer coordinates business logic between controllers and repositories. This prevents controllers from becoming tightly coupled to persistence details.
+
+If asked **"Why GlobalExceptionHandler?"**:
+
+> It centralizes HTTP error mapping so controllers and services can throw meaningful exceptions without duplicating response-formatting logic.
+
+---
+
+# 27. Future RAG Architecture
+
+The intended RAG pipeline is:
+
+```text
+GitHub Repository / Documents
+             |
+             v
+       Ingestion Service
+             |
+             v
+        Text Extraction
+             |
+             v
+           Chunking
+             |
+             v
+      Embedding Generation
+             |
+             v
+         PostgreSQL
+          + pgvector
+             |
+             v
+       Similarity Search
+             |
+             v
+      Relevant Context
+             |
+             v
+      Prompt Construction
+             |
+             v
+            LLM
+             |
+             v
+       Developer Answer
+```
+
+The important point is that DevPilot is not intended to simply send every user question directly to an LLM.
+
+The system should first retrieve relevant information from the user's software context and then use that context to produce a grounded answer.
+
+---
+
+# 28. Development Documentation Rules
+
+After every meaningful development session, add an entry containing:
 
 ```text
 Date
@@ -1214,59 +1532,31 @@ Remaining work
 
 Example:
 
-```text
+```markdown
 ## YYYY-MM-DD — Feature Name
 
 ### What changed
-...
 
 ### Why
-...
 
 ### How it works
-...
+
+### Important decisions
 
 ### Problems encountered
-...
 
 ### Solution
-...
 
 ### Remaining work
-...
 ```
 
-This makes the README useful both as project documentation and as a future interview/preparation reference.
+This README is intended to become the project's long-term technical record and an explanation reference for future development and interviews.
 
 ---
 
-# 28. Local Development Checklist
+# 29. Useful Development Commands
 
-Before starting backend development:
-
-```text
-[ ] Docker Desktop running
-[ ] PostgreSQL container running
-[ ] Database accessible on localhost:5433
-[ ] Java 21 available
-[ ] Backend dependencies resolved
-[ ] Environment variables configured
-```
-
-Before starting frontend development:
-
-```text
-[ ] Node.js installed
-[ ] Chosen package manager installed
-[ ] Dependencies installed
-[ ] Client development server running
-```
-
----
-
-# 29. Useful Commands
-
-## PostgreSQL
+## Docker / PostgreSQL
 
 ```powershell
 docker compose up -d
@@ -1274,6 +1564,14 @@ docker ps
 docker compose logs postgres
 docker compose down
 ```
+
+Remove containers and the development database volume:
+
+```powershell
+docker compose down -v
+```
+
+Use the `-v` option carefully because it removes the local database volume.
 
 ## Backend
 
@@ -1287,7 +1585,7 @@ cd backend
 
 ## Frontend
 
-From `client/`, the available scripts are:
+From `client/`:
 
 ```powershell
 npm run dev
@@ -1296,17 +1594,15 @@ npm run start
 npm run lint
 ```
 
-If the project is standardized on pnpm later, use the equivalent `pnpm` commands and keep only the selected package manager's lockfile.
+If pnpm becomes the standardized package manager, use the equivalent pnpm commands.
 
 ---
 
 # 30. Final Architecture Goal
 
-The eventual DevPilot system should evolve toward:
-
 ```text
                          +-------------------+
-                         |      Developer    |
+                         |     Developer     |
                          +---------+---------+
                                    |
                                    v
@@ -1314,57 +1610,265 @@ The eventual DevPilot system should evolve toward:
                          |   Next.js Client  |
                          +---------+---------+
                                    |
-                              HTTP / API
+                         React Query / UI
                                    |
                                    v
                          +-------------------+
                          | Spring Boot API   |
                          +---------+---------+
                                    |
-                 +-----------------+------------------+
-                 |                 |                  |
-                 v                 v                  v
-          Authentication       Application        RAG Pipeline
-                 |                 |                  |
-                 v                 v                  v
-            GitHub OAuth       PostgreSQL        Ingestion
-                                                     |
-                                                     v
-                                                  Chunking
-                                                     |
-                                                     v
-                                                 Embeddings
-                                                     |
-                                                     v
-                                                  pgvector
-                                                     |
-                                                     v
-                                              Similarity Search
-                                                     |
-                                                     v
-                                               Context Builder
-                                                     |
-                                                     v
-                                                   LLM
-                                                     |
-                                                     v
-                                                Response
+              +--------------------+--------------------+
+              |                    |                    |
+              v                    v                    v
+        Authentication       Application Logic       RAG
+              |                    |                    |
+              v                    v                    v
+        GitHub OAuth          PostgreSQL           Ingestion
+                                                       |
+                                                       v
+                                                    Chunking
+                                                       |
+                                                       v
+                                                   Embeddings
+                                                       |
+                                                       v
+                                                    pgvector
+                                                       |
+                                                       v
+                                               Similarity Search
+                                                       |
+                                                       v
+                                                Context Builder
+                                                       |
+                                                       v
+                                                      LLM
+                                                       |
+                                                       v
+                                                   Response
 ```
 
-The important architectural goal is not simply "add an LLM."
-
-The goal is to build a system where the model can reason over **relevant, retrieved, user-specific software context** while the backend handles authentication, persistence, security, retrieval, and orchestration.
+The final goal is a developer assistant that can reason over **retrieved, user-specific software context**, rather than simply acting as a generic chatbot.
 
 ---
 
 ## License
 
-No project license is currently declared in the repository. Add a license when the project's distribution terms are decided.
+No project license is currently declared.
 
 ---
 
 ## Repository
 
-DevPilot is maintained in the `purnenduachary/DevPilot` GitHub repository.
+DevPilot is maintained in the `purnenduachary/DevPilot` repository.
 
-This document describes the repository's current implementation and explicitly separates implemented functionality from planned architecture.
+This README intentionally distinguishes between **implemented functionality, development history, technical debt, and planned architecture**.
+
+
+# 31. Development Roadmap
+
+The roadmap tracks DevPilot from its initial foundation to a production-ready, repository-aware AI developer assistant.
+
+```text
+Phase 1 — Foundation       [██████████] 100%
+Phase 2 — Authentication   [░░░░░░░░░░]   0%
+Phase 3 — GitHub           [░░░░░░░░░░]   0%
+Phase 4 — RAG              [░░░░░░░░░░]   0%
+Phase 5 — AI Assistant     [░░░░░░░░░░]   0%
+Phase 6 — Frontend/UX      [░░░░░░░░░░]   0%
+Phase 7 — Production       [░░░░░░░░░░]   0%
+```
+
+## Phase 1 — Foundation
+
+**Status: 100%**
+
+- [x] Initialize repository
+- [x] Set up Spring Boot backend
+- [x] Set up Next.js/React frontend
+- [x] Configure TypeScript and Tailwind CSS
+- [x] Add reusable UI component foundation
+- [x] Add ThemeProvider
+- [x] Add TanStack React Query / QueryProvider
+- [x] Configure PostgreSQL with Docker
+- [x] Configure pgvector
+- [x] Configure JPA
+- [x] Create initial `User` entity
+- [x] Create `UserRepository`
+- [x] Create `UserService`
+- [x] Add application exception layer
+- [x] Add global exception handling
+- [x] Add Spring AI foundation
+
+## Phase 2 — Authentication
+
+**Status: 0%**
+
+- [ ] Configure GitHub OAuth
+- [ ] Implement OAuth login flow
+- [ ] Implement OAuth callback
+- [ ] Create authenticated session
+- [ ] Persist authenticated GitHub user
+- [ ] Add authentication/security configuration
+- [ ] Protect authenticated API routes
+- [ ] Add logout flow
+
+## Phase 3 — GitHub Integration
+
+**Status: 0%**
+
+- [ ] Connect GitHub API
+- [ ] Retrieve user's repositories
+- [ ] Display repository list
+- [ ] Select repository for analysis
+- [ ] Retrieve repository files
+- [ ] Handle repository metadata
+- [ ] Implement repository synchronization
+- [ ] Handle GitHub API failures/rate limits
+
+## Phase 4 — RAG
+
+**Status: 0%**
+
+- [ ] Design document model
+- [ ] Design chunk model
+- [ ] Implement repository ingestion
+- [ ] Extract source files
+- [ ] Filter unsupported/generated files
+- [ ] Chunk source code intelligently
+- [ ] Generate embeddings
+- [ ] Store embeddings in pgvector
+- [ ] Implement similarity search
+- [ ] Build retrieval service
+- [ ] Construct relevant context for prompts
+- [ ] Add source/file references to retrieved context
+
+## Phase 5 — AI Assistant
+
+**Status: 0%**
+
+- [ ] Implement chat API
+- [ ] Connect retrieval to chat
+- [ ] Build prompt/context pipeline
+- [ ] Add repository-aware questions
+- [ ] Explain code
+- [ ] Answer architecture questions
+- [ ] Summarize files/classes
+- [ ] Identify relevant source locations
+- [ ] Handle conversation history
+- [ ] Add streaming responses if appropriate
+- [ ] Add safeguards against unsupported claims
+
+## Phase 6 — Frontend / UX
+
+**Status: 0%**
+
+- [ ] Build authentication screens
+- [ ] Build application shell
+- [ ] Build repository selector
+- [ ] Build repository overview
+- [ ] Build code/context views
+- [ ] Build AI chat interface
+- [ ] Display retrieved source references
+- [ ] Add loading/error/empty states
+- [ ] Add responsive layouts
+- [ ] Polish dark/light themes
+- [ ] Improve accessibility
+- [ ] Add useful developer-focused interactions
+
+## Phase 7 — Production
+
+**Status: 0%**
+
+- [ ] Replace development database configuration
+- [ ] Introduce controlled Flyway migrations
+- [ ] Change Hibernate schema strategy from `update` to `validate`
+- [ ] Secure secrets and environment configuration
+- [ ] Configure production OAuth credentials
+- [ ] Add proper CORS/security configuration
+- [ ] Add automated tests
+- [ ] Add integration tests
+- [ ] Add observability/logging
+- [ ] Add health checks
+- [ ] Add CI/CD
+- [ ] Containerize production services
+- [ ] Review database indexes and query performance
+- [ ] Review vector-search performance
+- [ ] Perform security review
+- [ ] Deploy production version
+
+---
+
+# 32. Roadmap Progress Rules
+
+The progress bars represent **actual implemented functionality**, not planned code.
+
+A phase should only be marked complete when its core functionality is implemented and tested.
+
+For example:
+
+```text
+Added dependency
+      ≠
+Feature completed
+```
+
+and:
+
+```text
+Created database table
+      ≠
+Authentication implemented
+```
+
+This prevents the roadmap from becoming artificially optimistic.
+
+As development progresses, update the percentage and checklist based on actual commits and working functionality.
+
+---
+
+# 33. Project End Goal
+
+The final DevPilot workflow should look like:
+
+```text
+Developer
+    |
+    v
+GitHub Login
+    |
+    v
+Select Repository
+    |
+    v
+Repository Ingestion
+    |
+    v
+Source Code
+    |
+    v
+Chunking + Embeddings
+    |
+    v
+PostgreSQL + pgvector
+    |
+    v
+User Question
+    |
+    v
+Similarity Search
+    |
+    v
+Relevant Repository Context
+    |
+    v
+AI Model
+    |
+    v
+Grounded Developer Answer
+    |
+    v
+Source References
+```
+
+The goal is a developer assistant that understands the user's repository through retrieval rather than behaving like a generic chatbot.
+
