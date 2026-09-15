@@ -1,6 +1,6 @@
 package devPilot.backend.services;
 
-import devPilot.backend.entiity.User;
+import devPilot.backend.Entity.User;
 import devPilot.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
