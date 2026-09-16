@@ -1,4 +1,4 @@
-package devPilot.backend.Entity;
+package devPilot.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
