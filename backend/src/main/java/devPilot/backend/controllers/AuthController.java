@@ -29,12 +29,7 @@ public class AuthController {
     public ResponseEntity<UserResponse> me() {
         AppUserPrincipal principal = currentUser.require();
         User user = principal.getUser();
-        return ResponseEntity.ok(new UserResponse(
-                user.getId(),
-                user.getGithubId(),
-                user.getGithubUsername(),
-                user.getDisplayName(),
-                user.getAvatarUrl()));
+        return ResponseEntity.ok(new UserResponse(user.getId(), user.getGithubId(), user.getGithubUsername(), user.getDisplayName(), user.getAvatarUrl()));
     }
 
 }

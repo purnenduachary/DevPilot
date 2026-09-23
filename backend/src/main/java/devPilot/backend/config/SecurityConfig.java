@@ -17,15 +17,14 @@ import devPilot.backend.security.GitHubOAuth2UserService;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-
 public class SecurityConfig {
 
     private final GitHubOAuth2UserService gitHubOAuth2UserService;
-    private final AuthenticationSuccessHandler oauth2successHandler;
-    private final AuthenticationFailureHandler oauth2FailureHandler;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            AuthenticationSuccessHandler oauth2successHandler,
+                                            AuthenticationFailureHandler oauth2FailureHandler) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())

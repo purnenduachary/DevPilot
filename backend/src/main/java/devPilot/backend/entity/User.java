@@ -25,7 +25,7 @@ public class User {
     private String githubUsername;
 
     @Column(name = "display_name", nullable = false, length = 200)
-    private  String displayName;
+    private String displayName;
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
