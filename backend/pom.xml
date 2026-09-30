@@ -24,6 +24,7 @@
 		<spring-ai.version>2.0.1</spring-ai.version>
 	</properties>
 
+	<!-- ==================== DEPENDENCIES ==================== -->
 	<dependencies>
 
 		<!-- Database -->
@@ -58,12 +59,28 @@
 		</dependency>
 
 
-		<!-- Spring AI -->
+		<!-- ==================== SPRING AI ==================== -->
+
+		<!-- PGVector -->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-starter-model-openai</artifactId>
+			<artifactId>spring-ai-starter-vector-store-pgvector</artifactId>
 		</dependency>
 
+		<!-- Google Gemini -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-google-genai</artifactId>
+		</dependency>
+
+		<!-- Google Gemini Embeddings -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-google-genai-embedding</artifactId>
+		</dependency>
+
+
+		<!-- Spring AI Docker Compose -->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-spring-boot-docker-compose</artifactId>
@@ -72,7 +89,8 @@
 		</dependency>
 
 
-		<!-- Development -->
+		<!-- ==================== DEVELOPMENT ==================== -->
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -96,7 +114,8 @@
 		</dependency>
 
 
-		<!-- Tests -->
+		<!-- ==================== TESTING ==================== -->
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -130,7 +149,8 @@
 	</dependencies>
 
 
-	<!-- Spring AI BOM -->
+	<!-- ==================== SPRING AI BOM ==================== -->
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -144,47 +164,62 @@
 	</dependencyManagement>
 
 
+	<!-- ==================== BUILD ==================== -->
+
 	<build>
 		<plugins>
 
+			<!-- Spring Boot -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 
+
+			<!-- Maven Compiler -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+
 				<executions>
 
 					<execution>
 						<id>default-compile</id>
 						<phase>compile</phase>
+
 						<goals>
 							<goal>compile</goal>
 						</goals>
+
 						<configuration>
 							<annotationProcessorPaths>
+
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
 								</path>
+
 							</annotationProcessorPaths>
 						</configuration>
 					</execution>
 
+
 					<execution>
 						<id>default-testCompile</id>
 						<phase>test-compile</phase>
+
 						<goals>
 							<goal>testCompile</goal>
 						</goals>
+
 						<configuration>
 							<annotationProcessorPaths>
+
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
 								</path>
+
 							</annotationProcessorPaths>
 						</configuration>
 					</execution>
